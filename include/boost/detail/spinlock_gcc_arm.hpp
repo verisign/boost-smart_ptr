@@ -1,11 +1,5 @@
-#ifndef BOOST_DETAIL_SPINLOCK_NT_HPP_INCLUDED
-#define BOOST_DETAIL_SPINLOCK_NT_HPP_INCLUDED
-
-// MS compatible compilers support #pragma once
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-# pragma once
-#endif
+#ifndef BOOST_DETAIL_SPINLOCK_GCC_ARM_HPP_INCLUDED
+#define BOOST_DETAIL_SPINLOCK_GCC_ARM_HPP_INCLUDED
 
 //
 //  Copyright (c) 2008 Peter Dimov
@@ -15,7 +9,7 @@
 //  http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/assert.hpp>
+#include <boost/detail/yield_k.hpp>
 
 namespace boost
 {
@@ -27,33 +21,35 @@ class spinlock
 {
 public:
 
-    bool locked_;
+    int v_;
 
 public:
 
-    inline bool try_lock()
+    bool try_lock()
     {
-        if( locked_ )
+        int r;
+
+        __asm__ __volatile__(
+            "swp %0, %1, [%2]":
+            "=&r"( r ): // outputs
+            "r"( 1 ), "r"( &v_ ): // inputs
+            "memory", "cc" );
+
+        return r == 0;
+    }
+
+    void lock()
+    {
+        for( unsigned k = 0; !try_lock(); ++k )
         {
-            return false;
-        }
-        else
-        {
-            locked_ = true;
-            return true;
+            boost::detail::yield( k );
         }
     }
 
-    inline void lock()
+    void unlock()
     {
-        BOOST_ASSERT( !locked_ );
-        locked_ = true;
-    }
-
-    inline void unlock()
-    {
-        BOOST_ASSERT( locked_ );
-        locked_ = false;
+        __asm__ __volatile__( "" ::: "memory" );
+        *const_cast< int volatile* >( &v_ ) = 0;
     }
 
 public:
@@ -84,6 +80,6 @@ public:
 } // namespace detail
 } // namespace boost
 
-#define BOOST_DETAIL_SPINLOCK_INIT { false }
+#define BOOST_DETAIL_SPINLOCK_INIT {0}
 
-#endif // #ifndef BOOST_DETAIL_SPINLOCK_NT_HPP_INCLUDED
+#endif // #ifndef BOOST_DETAIL_SPINLOCK_GCC_ARM_HPP_INCLUDED
