@@ -21,7 +21,16 @@
 //
 
 #include <boost/detail/sp_typeinfo.hpp>
+#if defined( __GNUC__ )
+// This is a minimal fill-in for AIX xlC's /usr/vacpp/include/builtins.h, which
+// we cannot assume is available since when using gcc, xlC may not be installed.
+// We only #define __isync() and __lwsync(), vs the full 100-ish builtin APIs.
+// They are implemented via __asm__ here, vs being actual built-in's in IBM xlC.
+#define __isync() __asm__ __volatile__ ("isync" : : : "memory")
+#define __lwsync() __asm__ __volatile__ ("lwsync" : : : "memory")
+#else
 #include <builtins.h>
+#endif
 #include <sys/atomic_op.h>
 
 namespace boost

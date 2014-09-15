@@ -26,6 +26,13 @@
 
 # define BOOST_SP_HAS_SYNC
 
+#if defined( __GNUC__ ) && (defined( _AIX ) || defined( AIX ))
+// __sync_*() APIs don't work for us when built optimized with GCC 4.8.0 on AIX
+// 6.1 and 7.1, so we assume they don't work with all versions of GCC on AIX,
+// so we undefine BOOST_SP_HAS_SYNC.
+#undef BOOST_SP_HAS_SYNC
+#endif
+
 #elif defined( __IBMCPP__ ) && ( __IBMCPP__ >= 1210 )
 
 # define BOOST_SP_HAS_SYNC
@@ -59,6 +66,13 @@
 #endif
 
 #if defined(__PATHSCALE__) && ((__PATHCC__ == 4) && (__PATHCC_MINOR__ < 9)) 
+#undef BOOST_SP_HAS_SYNC
+#endif
+
+#if defined( __GNUC__ ) && (defined( _AIX ) || defined( AIX ))
+// __sync_*() APIs don't work for us when built optimized with GCC 4.8.0 on AIX
+// 6.1 and 7.1, so we assume they don't work with all versions of GCC on AIX,
+// so we undefine BOOST_SP_HAS_SYNC.
 #undef BOOST_SP_HAS_SYNC
 #endif
 
